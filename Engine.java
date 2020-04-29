@@ -45,14 +45,16 @@ public class Engine {
     HashSet<Point> visible = new HashSet<>();
     /** Stopwatch for timing */
     Stopwatch timer;
-    /** Switch to a different ground, re-calibrating time */
-    double start;
     /** Health bar */
     int health = Constants.DEFAULT_HEALTH;
     /** Medicine position */
     Point pill;
     /** Brick position */
     Point brick;
+    /** Times water have flown */
+    int flowCount;
+    /** The starting count of the flow */
+    int start;
 
 
     /**
@@ -70,8 +72,8 @@ public class Engine {
                     //new TERenderer().renderFrame(WORLD, health, inWater(), hasBrick);
             } else {
                 processMenu(c);
-                //visibleArea();
-                new TERenderer().renderFrame(WORLD, health, inWater(), hasBrick);
+                visibleArea();
+                //new TERenderer().renderFrame(WORLD, health, inWater(), hasBrick);
             }
         }
     }
@@ -111,7 +113,6 @@ public class Engine {
                     WORLD[door.x][door.y] = Tileset.WATER;
                     flooded[door.x][door.y] = true;
                     timer = new Stopwatch();
-                    start = 0;
                     visibleArea();
                 }
             }
@@ -119,34 +120,36 @@ public class Engine {
             else if (timer != null) {
                 if (timer.elapsedTime() % 2 == 0) {
                     flow();
-                    if (inWater() && position == Constants.NO_WATER) {
-                        position = Constants.HAS_WATER;
-                        start = timer.elapsedTime();
-                    }
                     visibleArea();
                 }
             }
-            // Health regen and loss
-            if (flown && timer != null && position == Constants.HAS_WATER &&
-                timer.elapsedTime() - start == 3.0) {
-                start += 3.0;
+            if (flown && inWater() && position == Constants.NO_WATER) {
+                position = Constants.HAS_WATER;
+                start = flowCount;
+            } else if (flown && !inWater() && position == Constants.HAS_WATER) {
+                position = Constants.NO_WATER;
+                start = flowCount;
+            }
+
+            if (flown && position == Constants.HAS_WATER && flowCount > start &&
+                flowCount - start == 2) {
+                start += 2;
                 health = Math.max(0, health - 1);
-            } else if (flown && timer != null && position == Constants.NO_WATER &&
-                timer.elapsedTime() - start == 5.0) {
-                start += 5.0;
+            } else if (flown && position == Constants.NO_WATER && flowCount > start &&
+                        flowCount - start == 4) {
+                start += 4;
                 if (!takePill)
                     health = Math.min(Constants.DEFAULT_HEALTH, health + 1);
                 else
                     health = Math.min(Constants.DEFAULT_HEALTH + Constants.PILL_BUFF,
                             health + 1);
             }
-            if (health == 0)
-                lose();
         }
     }
 
     private void flow() {
         HashSet<Point> flowAreas = new HashSet<>();
+        flowCount++;
         for (Point p: visible) {
             if (p.x != 0 && !flooded[p.x - 1][p.y]) {
                 if (WORLD[p.x - 1][p.y].equals(Tileset.WALL)) {
@@ -158,6 +161,12 @@ public class Engine {
                     WORLD[p.x - 1][p.y] = Tileset.WATER;
                     flooded[p.x - 1][p.y] = true;
                 } else if (WORLD[p.x - 1][p.y].equals(Tileset.AVATAR)) {
+                    flowAreas.add(new Point(p.x - 1, p.y));
+                    flooded[p.x - 1][p.y] = true;
+                } else if (WORLD[p.x - 1][p.y].equals(Tileset.PILL)) {
+                    flowAreas.add(new Point(p.x - 1, p.y));
+                    flooded[p.x - 1][p.y] = true;
+                } else if (WORLD[p.x - 1][p.y].equals(Tileset.BRICK)) {
                     flowAreas.add(new Point(p.x - 1, p.y));
                     flooded[p.x - 1][p.y] = true;
                 }
@@ -173,6 +182,12 @@ public class Engine {
                 } else if (WORLD[p.x + 1][p.y].equals(Tileset.AVATAR)) {
                     flowAreas.add(new Point(p.x + 1, p.y));
                     flooded[p.x + 1][p.y] = true;
+                } else if (WORLD[p.x + 1][p.y].equals(Tileset.PILL)) {
+                    flowAreas.add(new Point(p.x + 1, p.y));
+                    flooded[p.x + 1][p.y] = true;
+                } else if (WORLD[p.x + 1][p.y].equals(Tileset.BRICK)) {
+                    flowAreas.add(new Point(p.x + 1, p.y));
+                    flooded[p.x + 1][p.y] = true;
                 }
             }
             if (p.y != 0 && !flooded[p.x][p.y - 1]) {
@@ -186,6 +201,12 @@ public class Engine {
                 } else if (WORLD[p.x][p.y - 1].equals(Tileset.AVATAR)) {
                     flowAreas.add(new Point(p.x, p.y - 1));
                     flooded[p.x][p.y - 1] = true;
+                } else if (WORLD[p.x][p.y - 1].equals(Tileset.PILL)) {
+                    flowAreas.add(new Point(p.x, p.y - 1));
+                    flooded[p.x][p.y - 1] = true;
+                } else if (WORLD[p.x][p.y - 1].equals(Tileset.BRICK)) {
+                    flowAreas.add(new Point(p.x, p.y - 1));
+                    flooded[p.x][p.y - 1] = true;
                 }
             }
             if (p.y != HEIGHT - 1 && !flooded[p.x][p.y + 1]) {
@@ -196,6 +217,12 @@ public class Engine {
                     WORLD[p.x][p.y + 1] = Tileset.WATER;
                     flooded[p.x][p.y + 1] = true;
                 } else if (WORLD[p.x][p.y + 1].equals(Tileset.AVATAR)) {
+                    flowAreas.add(new Point(p.x, p.y + 1));
+                    flooded[p.x][p.y + 1] = true;
+                } else if (WORLD[p.x][p.y + 1].equals(Tileset.PILL)) {
+                    flowAreas.add(new Point(p.x, p.y + 1));
+                    flooded[p.x][p.y + 1] = true;
+                } else if (WORLD[p.x][p.y + 1].equals(Tileset.BRICK)) {
                     flowAreas.add(new Point(p.x, p.y + 1));
                     flooded[p.x][p.y + 1] = true;
                 }
@@ -253,7 +280,7 @@ public class Engine {
         StdDraw.textLeft(0.1, 0.7, "1. Player starts with 10 air supply. " +
                 "Die if air supply drops to 0.");
         StdDraw.textLeft(0.1, 0.6, "2. On floor player gains 1 air supply per " +
-                "5 seconds, in water loses 1 air supply per 3 seconds");
+                "8 seconds, in water loses 1 air supply per 4 seconds");
         StdDraw.textLeft(0.1, 0.5, "3. You can have at most 10 air supply. " +
                 "There is a medicine, take it you'll gain 3 air supply instantly, " +
                 "and you can have at most 13 air supply now!");
@@ -317,9 +344,7 @@ public class Engine {
                 break;
             case 'L': // Load File
                 // TODO: Load a File
-                if (!loaded) {
-                    promptLoad();
-                }
+                displayHelpMenu();
                 break;
             case 'Q':
                 System.exit(0);
@@ -514,14 +539,16 @@ public class Engine {
     }
 
     private void changeGround(int dx, int dy) {
+        /*
         if (flooded[avatar.x + dx][avatar.y + dy] != flooded[avatar.x][avatar.y]) {
-            System.out.println("Go");
             if (flooded[avatar.x][avatar.y] == Constants.HAS_WATER)
                 position = Constants.NO_WATER;
             else
                 position = Constants.HAS_WATER;
             start = timer.elapsedTime();
         }
+
+         */
     }
 
     /**
