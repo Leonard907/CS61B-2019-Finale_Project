@@ -8,3 +8,5 @@ You can see the rules for the game in the **Help Menu** Option.
 For a new game, you need to specify a random seed that is in the range of <font color='red'>JAVA LONG</font>. After that you'll be able to see the game interface. 
 Win the game by found the brick and block the entrance of water, or lose if you spend to much time in 
 the water and run out of air supply.
+## Edit
+First edit: Limitations in timing which makes health regen and loss irregular are fixed. Timing method done in another way by calculating number of flow.
